@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <h1>Dashboard Admin</h1>
+    <h2>Kelola Data Barang</h2>
+    
+    <!-- Form Tambah Barang -->
+    <div id="formContainer">
+        <form id="dataForm">
+            <label>Nama Barang:</label>
+            <input type="text" id="namaBarang" required>
+            <label>Kategori:</label>
+            <input type="text" id="kategori" required>
+            <label>Stok Awal:</label>
+            <input type="number" id="stok" required>
+            <label>Harga Beli:</label>
+            <input type="number" id="hargaBeli" step="0.01" required>
+            <label>Harga Jual:</label>
+            <input type="number" id="hargaJual" step="0.01" required>
+            <button type="submit">Tambah Data</button>
+        </form>
+    </div>
+
+    <h2>Data Barang</h2>
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th>Nama Barang</th>
+                <th>Kategori</th>
+                <th>Stok</th>
+                <th>Harga Beli</th>
+                <th>Harga Jual</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Statistik Visual</h2>
+    <canvas id="chartAdmin"></canvas>
+
+    <h2>Laporan</h2>
+    <button id="exportPdfAdmin">Download PDF</button>
+
+    <h2>Opsi Tindakan Lain</h2>
+    <button id="logoutBtn">Keluar</button>
+
+    <script>
+        let dataBarang = [];
+
+        // Admin Menambah Data Barang Baru
+        const dataForm = document.getElementById("dataForm");
+        if (dataForm) {
+            dataForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+                const nama = document.getElementById("namaBarang").value;
+                const kategori = document.getElementById("kategori").value;
+                const stok = parseInt(document.getElementById("stok").value) || 0;
+                const hargaBeli = parseFloat(document.getElementById("hargaBeli").value) || 0;
+                const hargaJual = parseFloat(document.getElementById("hargaJual").value) || 0;
+
+                dataBarang.push({ nama, kategori, stok, hargaBeli, hargaJual });
+                renderTable();
+                renderChart();
+                dataForm.reset();
+            });
+        }
+
+        // Render Tabel Admin
+        function renderTable() {
+            const tableBody = document.querySelector("#dataTable tbody");
+            if (tableBody) {
+                tableBody.innerHTML = "";
+                dataBarang.forEach((item, index) => {
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td>${item.nama}</td>
+                            <td>${item.kategori}</td>
+                            <td>${item.stok}</td>
+                            <td>${item.hargaBeli.toFixed(2)}</td>
+                            <td>${item.hargaJual.toFixed(2)}</td>
+                            <td>
+                                <button class="btn-tambah-stok" data-index="${index}">Tambah Stok</button>
+                                <button class="btn-jual-barang" data-index="${index}">Jual Barang</button>
+                                <button class="btn-delete" data-index="${index}">Hapus</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                // Event listeners
+                document.querySelectorAll(".btn-delete").forEach(button => {
+                    button.addEventListener("click", function () {
+                        const index = this.getAttribute("data-index");
+                        deleteData(index);
+                    });
+                });
+
+                document.querySelectorAll(".btn-tambah-stok").forEach(button => {
+                    button.addEventListener("click", function () {
+                        const index = this.getAttribute("data-index");
+                        tambahStok(index);
+                    });
+                });
+
+                document.querySelectorAll(".btn-jual-barang").forEach(button => {
+                    button.addEventListener("click", function () {
+                        const index = this.getAttribute("data-index");
+                        jualBarang(index);
+                    });
+                });
+            }
+        }
+
+        // Hapus Data
+        function deleteData(index) {
+            dataBarang.splice(index, 1);
+            renderTable();
+            renderChart();
+        }
+
+        // Tambah Stok Barang
+        function tambahStok(index) {
+            const jumlah = parseInt(prompt("Masukkan jumlah stok yang akan ditambahkan:", "0")) || 0;
+            if (jumlah > 0) {
+                dataBarang[index].stok += jumlah;
+                renderTable();
+                renderChart();
+                alert(`Berhasil menambahkan ${jumlah} stok ke ${dataBarang[index].nama}`);
+            } else {
+                alert("Jumlah stok tidak valid!");
+            }
+        }
+
+        // Jual Barang
+        function jualBarang(index) {
+            const jumlah = parseInt(prompt("Masukkan jumlah barang yang terjual:", "0")) || 0;
+            if (jumlah > 0 && jumlah <= dataBarang[index].stok) {
+                dataBarang[index].stok -= jumlah;
+                renderTable();
+                renderChart();
+                alert(`Berhasil menjual ${jumlah} barang ${dataBarang[index].nama}`);
+            } else if (jumlah > dataBarang[index].stok) {
+                alert("Stok tidak mencukupi!");
+            } else {
+                alert("Jumlah barang tidak valid!");
+            }
+        }
+
+        // Render Grafik
+        function renderChart() {
+            const chartCanvas = document.getElementById("chartAdmin");
+            if (chartCanvas) {
+                const ctx = chartCanvas.getContext("2d");
+
+                if (chartCanvas.chart) {
+                    chartCanvas.chart.destroy();
+                }
+
+                chartCanvas.chart = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: dataBarang.map(item => item.nama),
+                        datasets: [{
+                            label: "Jumlah Stok",
+                            data: dataBarang.map(item => item.stok),
+                            backgroundColor: "skyblue"
+                        }]
+                    }
+                });
+            }
+        }
+
+        // Export PDF
+        const exportPdfButton = document.getElementById("exportPdfAdmin");
+        if (exportPdfButton) {
+            exportPdfButton.addEventListener("click", function () {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF();
+
+                // Tambahkan judul laporan
+                pdf.text("Laporan Data Barang", 10, 10);
+
+                // Siapkan data untuk tabel
+                const tableData = dataBarang.map((item, index) => [
+                    index + 1,                 // No
+                    item.nama,                 // Nama Barang
+                    item.kategori,             // Kategori
+                    item.stok,                 // Stok
+                    item.hargaBeli.toFixed(2), // Harga Beli    
+                    item.hargaJual.toFixed(2)  // Harga Jual
+                ]);
+
+                // Tambahkan tabel menggunakan AutoTable
+                pdf.autoTable({
+                    head: [["No", "Nama Barang", "Kategori", "Stok", "Harga Beli", "Harga Jual"]], // Header tabel
+                    body: tableData, // Data tabel
+                    startY: 20       // Posisi mulai tabel
+                });
+
+                // Simpan file PDF
+                pdf.save("Laporan_Admin.pdf");
+            });
+        }
+
+        // Tombol Logout
+        document.getElementById("logoutBtn").addEventListener("click", function() {
+            alert("Anda akan keluar dari aplikasi.");
+            window.location.href = "halaman_login.html";
+        });
+    </script>
+</body>
+</html>

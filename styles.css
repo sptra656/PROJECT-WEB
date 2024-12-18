@@ -1,0 +1,60 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: center;
+}
+
+th {
+    background-color: #007bff;
+    color: white;
+}
+
+button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #218838;
+}
+
+form input {
+    margin: 5px;
+}
+
+.hidden {
+    display: none;
+}
+
+#showFormBtn, #logoutBtn {
+    margin-top: 20px;
+    background-color: #007bff;
+}
+
+#exitFormBtn {
+    margin-top: 10px;
+    background-color: #dc3545;
+}
+
+#exitFormBtn:hover {
+    background-color: #c82333;
+}
+
